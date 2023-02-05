@@ -2,6 +2,7 @@ const { query } = require("express");
 const { catchAsync } = require("../utils/catchAsync");
 const Tour = require("./../models/tourModel");
 const APIFeatures = require("./../utils/apiFeatures");
+const AppError = require("./../utils/appError");
 
 exports.aliasTopTours = (req, res, next) => {
   req.query.limit = 5;
@@ -76,6 +77,10 @@ exports.getSingleTour = catchAsync(async (req, res) => {
 
   const tour = await Tour.findById(tourId);
 
+  if (!tour) {
+    return next(new AppError("No tour found with that ID", 404));
+  }
+
   res.status(200).json({
     status: "success",
     data: {
@@ -110,6 +115,10 @@ exports.updateTour = async (req, res) => {
 
     const tour = await Tour.findByIdAndUpdate(tourId, req.body, { new: true });
 
+    if (!tour) {
+      return next(new AppError("No tour found with that ID", 404));
+    }
+
     res.status(200).json({
       status: "success",
       data: {
@@ -128,7 +137,11 @@ exports.deleteTour = async (req, res) => {
   try {
     const tourId = req?.params?.tourId;
 
-    await Tour.findByIdAndDelete(tourId);
+    const tour = await Tour.findByIdAndDelete(tourId);
+
+    if (!tour) {
+      return next(new AppError("No tour found with that ID", 404));
+    }
 
     res.status(202).json({
       status: "success",
