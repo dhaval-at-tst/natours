@@ -40,6 +40,7 @@ const userSchema = new Schema({
     minLength: [8, "Password must be minimum 8 character long"],
     maxLength: [32, "Password must be shorter than 32 character"],
   },
+  passwordUpdatedAt: Date,
 });
 
 userSchema.pre("save", async function (next) {
@@ -60,6 +61,17 @@ userSchema.methods.isPasswordCorrect = async function (
   userPassword
 ) {
   return await bcrypt.compare(candidatePassword, userPassword);
+};
+
+userSchema.methods.isPasswordUpdatedAfter = async function (JWTTimestamp) {
+  if (this.passwordUpdatedAt) {
+    const updatedTimestamp = parseInt(
+      this.passwordUpdatedAt.getTime() / 1000,
+      10
+    );
+    return JWTTimestamp < updatedTimestamp;
+  }
+  return false;
 };
 
 const User = model("User", userSchema);
