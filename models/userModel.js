@@ -1,5 +1,6 @@
 const { Schema, model } = require("mongoose");
 const bcrypt = require("bcryptjs");
+const crypto = require("crypto");
 
 const { default: isEmail } = require("validator/lib/isemail");
 
@@ -18,6 +19,11 @@ const userSchema = new Schema({
     validate: [isEmail, "Please provide a valid email"],
   },
   profilePic: String,
+  role: {
+    type: String,
+    enum: ["user", "guide", "lead-guide", "admin"],
+    default: "user",
+  },
   password: {
     type: String,
     trim: true,
@@ -41,6 +47,8 @@ const userSchema = new Schema({
     maxLength: [32, "Password must be shorter than 32 character"],
   },
   passwordUpdatedAt: Date,
+  passwordResetToken: String,
+  passwordResetExpires: Date,
 });
 
 userSchema.pre("save", async function (next) {
@@ -53,6 +61,13 @@ userSchema.pre("save", async function (next) {
   // Delete cPassword field
   this.cPassword = undefined;
 
+  next();
+});
+userSchema.pre("save", async function (next) {
+  //Skip if password is not modified or If creation new document
+  if (!this.isModified("password") || this.isNew) return next();
+
+  this.passwordUpdatedAt = Date.now() - 1000;
   next();
 });
 
@@ -72,6 +87,19 @@ userSchema.methods.isPasswordUpdatedAfter = async function (JWTTimestamp) {
     return JWTTimestamp < updatedTimestamp;
   }
   return false;
+};
+
+userSchema.methods.testGenerate = function () {
+  const resetToken = crypto.randomBytes(32).toString("hex");
+
+  this.passwordResetToken = crypto
+    .createHash("sha256")
+    .update(resetToken)
+    .digest("hex");
+
+  this.passwordResetExpires = Date.now() + 10 * 60 * 1000;
+
+  return resetToken;
 };
 
 const User = model("User", userSchema);
