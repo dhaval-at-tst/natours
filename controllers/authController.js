@@ -6,6 +6,19 @@ const { catchAsync } = require("../utils/catchAsync");
 const sendEmail = require("../utils/email");
 const AppError = require("./../utils/appError");
 
+const cookieOptions = () => {
+  const x = {
+    expires: new Date(
+      Date.now() + +process.env.JWT_COOKIE_EXPIRES_IN * 24 * 60 * 60 * 1000
+    ),
+    httpOnly: true,
+  };
+
+  if (process.env.NODE_ENV === "production") x.secure = true;
+
+  return x;
+};
+
 exports.signUp = catchAsync(async (req, res, next) => {
   const newUser = await User.create({
     name: req.body.name,
@@ -18,6 +31,9 @@ exports.signUp = catchAsync(async (req, res, next) => {
     expiresIn: process.env.JWT_EXPIRES_IN,
   });
 
+  res.cookie("jwt", token, cookieOptions());
+
+  newUser.password = undefined;
   res.status(201).json({
     status: "success",
     token,
@@ -46,6 +62,8 @@ exports.login = catchAsync(async (req, res, next) => {
   const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, {
     expiresIn: process.env.JWT_EXPIRES_IN,
   });
+
+  res.cookie("jwt", token, cookieOptions());
 
   res.status(200).json({
     status: "success",
@@ -182,6 +200,8 @@ exports.resetPassword = catchAsync(async (req, res, next) => {
     expiresIn: process.env.JWT_EXPIRES_IN,
   });
 
+  res.cookie("jwt", token, cookieOptions());
+
   res.status(201).json({
     status: "success",
     token,
@@ -211,6 +231,8 @@ exports.updateMyPassword = catchAsync(async (req, res, next) => {
   const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, {
     expiresIn: process.env.JWT_EXPIRES_IN,
   });
+
+  res.cookie("jwt", token, cookieOptions());
 
   res.status(201).json({
     status: "success",
