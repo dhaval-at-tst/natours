@@ -49,6 +49,16 @@ exports.updateMe = catchAsync(async (req, res, next) => {
   });
 });
 
+exports.deleteMe = catchAsync(async (req, res, next) => {
+  await User.findByIdAndUpdate(req.user.id, {
+    isActive: false,
+  });
+  res.status(204).json({
+    status: "success",
+    data: null,
+  });
+});
+
 exports.getUser = routeYetNotDefined;
 exports.createUser = routeYetNotDefined;
 exports.updateUser = routeYetNotDefined;
