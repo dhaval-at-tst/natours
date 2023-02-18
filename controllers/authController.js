@@ -85,7 +85,7 @@ exports.protect = catchAsync(async (req, res, next) => {
   }
 
   // Check if user changed password after the token was issued
-  if (currentUser.passwordUpdatedAt(decoded.iat)) {
+  if (await currentUser.isPassUpdatedAfter(decoded.iat)) {
     return next(
       new AppError("User recently changed password!. Please log in again.", 401)
     );
@@ -187,6 +187,36 @@ exports.resetPassword = catchAsync(async (req, res, next) => {
     token,
     data: {
       user: newUser,
+    },
+  });
+});
+exports.updatePassword = catchAsync(async (req, res, next) => {
+  // Get user from collection
+  const user = await User.findById(req.user.id).select("+password");
+
+  // Check if posted current password is correct
+  if (
+    !(await user.isPasswordCorrect(req.body.currentPassword, user.password))
+  ) {
+    return next(new AppError("Invalid current password!", 401));
+  }
+
+  // If so, update the password
+  user.password = req.body.password;
+  user.cPassword = req.body.cPassword;
+
+  await user.save();
+
+  // Log the user in, send JWT
+  const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, {
+    expiresIn: process.env.JWT_EXPIRES_IN,
+  });
+
+  res.status(201).json({
+    status: "success",
+    token,
+    data: {
+      user: user,
     },
   });
 });

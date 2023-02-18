@@ -78,7 +78,7 @@ userSchema.methods.isPasswordCorrect = async function (
   return await bcrypt.compare(candidatePassword, userPassword);
 };
 
-userSchema.methods.isPasswordUpdatedAfter = async function (JWTTimestamp) {
+userSchema.methods.isPassUpdatedAfter = async function (JWTTimestamp) {
   if (this.passwordUpdatedAt) {
     const updatedTimestamp = parseInt(
       this.passwordUpdatedAt.getTime() / 1000,
